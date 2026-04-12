@@ -1,0 +1,9 @@
+.env
+leads.db
+logs/
+reports/
+__pycache__/
+*.pyc
+scheduler_state.json
+.claude/
+.DS_Store

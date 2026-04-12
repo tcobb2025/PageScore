@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PageScore HQ — Find Out What's Costing You Customers</title>
+<meta name="description" content="Automated SEO audit reports for local businesses. We scan your site, find the issues hurting your Google ranking, and tell you exactly how to fix them. $49 one-time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ━━ Reset & base ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;color:#1e293b;line-height:1.6;background:#fff;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{text-decoration:none;color:inherit}
+
+/* ━━ Tokens ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+:root{
+  --navy:#0f172a;
+  --navy-mid:#1e293b;
+  --green:#22c55e;
+  --green-dark:#16a34a;
+  --green-light:#bbf7d0;
+  --green-bg:#f0fdf4;
+  --gray-50:#f8fafc;
+  --gray-100:#f1f5f9;
+  --gray-200:#e2e8f0;
+  --gray-400:#94a3b8;
+  --gray-500:#64748b;
+  --gray-600:#475569;
+  --white:#ffffff;
+  --radius:12px;
+  --radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 14px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 12px rgba(0,0,0,.1),0 16px 40px rgba(0,0,0,.08);
+  --max-w:1120px;
+}
+h1,h2,h3,h4{font-family:'Syne',sans-serif;line-height:1.2;color:var(--navy)}
+.container{width:100%;max-width:var(--max-w);margin:0 auto;padding:0 24px}
+
+/* ━━ Buttons ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:1rem;
+  padding:14px 32px;border:none;border-radius:var(--radius-sm);
+  cursor:pointer;transition:all .25s ease;
+}
+.btn-primary{
+  background:var(--green);color:var(--navy);
+  box-shadow:0 2px 8px rgba(34,197,94,.35);
+}
+.btn-primary:hover{background:var(--green-dark);color:var(--white);transform:translateY(-1px);box-shadow:0 4px 16px rgba(34,197,94,.4)}
+.btn-outline{
+  background:transparent;color:var(--white);
+  border:2px solid rgba(255,255,255,.3);
+}
+.btn-outline:hover{border-color:var(--green);color:var(--green)}
+
+/* Pulse */
+@keyframes pulse-ring{
+  0%{box-shadow:0 0 0 0 rgba(34,197,94,.45)}
+  70%{box-shadow:0 0 0 10px rgba(34,197,94,0)}
+  100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}
+}
+.btn-pulse{animation:pulse-ring 2.5s ease-out infinite}
+
+/* ━━ Nav ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(15,23,42,.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.nav-inner{
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.25rem;color:var(--white)}
+.logo span{color:var(--green)}
+.nav .btn{padding:10px 22px;font-size:.875rem}
+
+/* ━━ Hero ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.hero{
+  background:var(--navy);
+  padding:140px 0 100px;
+  position:relative;
+  overflow:hidden;
+}
+/* Subtle grid pattern */
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+  background-size:64px 64px;
+}
+/* Gradient glow */
+.hero::after{
+  content:'';position:absolute;top:-40%;right:-20%;
+  width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(34,197,94,.12) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:60px;
+  align-items:center;position:relative;z-index:1;
+}
+.hero h1{font-size:clamp(2rem,4.5vw,3.25rem);color:var(--white);margin-bottom:20px}
+.hero h1 em{font-style:normal;color:var(--green)}
+.hero-sub{font-size:1.125rem;color:var(--gray-400);margin-bottom:32px;max-width:520px;line-height:1.7}
+.hero-trust{font-size:.85rem;color:var(--gray-500);margin-top:14px;display:flex;align-items:center;gap:6px}
+.hero-trust svg{flex-shrink:0}
+
+/* Score gauge illustration */
+.gauge-wrap{display:flex;justify-content:center;align-items:center}
+.gauge{position:relative;width:280px;height:280px}
+.gauge svg{width:100%;height:100%}
+.gauge-score{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+}
+.gauge-score .number{font-family:'Syne',sans-serif;font-size:4rem;font-weight:800;color:var(--white);line-height:1}
+.gauge-score .out-of{font-size:1.1rem;color:var(--gray-400);margin-top:2px}
+.gauge-score .label{
+  font-size:.75rem;font-weight:700;color:#ef4444;
+  background:rgba(239,68,68,.15);padding:4px 14px;border-radius:20px;margin-top:10px;
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.gauge-flags{
+  position:absolute;right:-16px;top:50%;transform:translateY(-50%);
+  display:flex;flex-direction:column;gap:8px;
+}
+.gauge-flag{
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);
+  color:#fca5a5;font-size:.7rem;font-weight:500;
+  padding:5px 12px;border-radius:6px;white-space:nowrap;
+  backdrop-filter:blur(4px);
+}
+.gauge-flag.warn{
+  background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.2);color:#fcd34d;
+}
+
+/* ━━ How it works ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.how{padding:100px 0;background:var(--white)}
+.section-label{
+  font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:700;
+  color:var(--green-dark);text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:12px;
+}
+.section-title{font-size:clamp(1.5rem,3vw,2.25rem);margin-bottom:60px;max-width:550px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:40px}
+.step{position:relative}
+.step-num{
+  width:48px;height:48px;border-radius:50%;
+  background:var(--green-bg);color:var(--green-dark);
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.25rem;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;
+}
+.step h3{font-size:1.15rem;margin-bottom:8px}
+.step p{color:var(--gray-600);font-size:.95rem;line-height:1.65}
+/* Connector line */
+.step:not(:last-child)::after{
+  content:'';position:absolute;top:24px;left:72px;right:-24px;
+  height:2px;background:var(--gray-200);
+}
+
+/* ━━ What we check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.checks{padding:100px 0;background:var(--gray-50)}
+.check-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.check-card{
+  background:var(--white);padding:32px 28px;border-radius:var(--radius);
+  border:1px solid var(--gray-200);transition:all .25s ease;
+}
+.check-card:hover{border-color:var(--green);box-shadow:var(--shadow);transform:translateY(-2px)}
+.check-icon{
+  width:44px;height:44px;border-radius:10px;
+  background:var(--green-bg);color:var(--green-dark);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:16px;font-size:1.25rem;
+}
+.check-card h3{font-size:1.05rem;margin-bottom:6px}
+.check-card p{color:var(--gray-600);font-size:.875rem;line-height:1.6}
+
+/* ━━ Pricing ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.pricing{padding:100px 0;background:var(--white)}
+.pricing-center{text-align:center}
+.price-card{
+  max-width:440px;margin:0 auto;
+  background:var(--white);border:2px solid var(--gray-200);
+  border-radius:16px;padding:48px 40px;
+  box-shadow:var(--shadow-lg);position:relative;overflow:hidden;
+}
+.price-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--green),var(--green-dark));
+}
+.price-amount{
+  font-family:'Syne',sans-serif;font-size:3.5rem;font-weight:800;
+  color:var(--navy);margin:8px 0 4px;
+}
+.price-amount span{font-size:1.5rem;color:var(--gray-400);font-weight:600;vertical-align:top;margin-right:2px}
+.price-term{color:var(--gray-500);font-size:.95rem;margin-bottom:32px}
+.price-features{list-style:none;text-align:left;margin-bottom:36px}
+.price-features li{
+  padding:10px 0;border-bottom:1px solid var(--gray-100);
+  font-size:.95rem;color:var(--gray-600);
+  display:flex;align-items:center;gap:12px;
+}
+.price-features li::before{
+  content:'';width:20px;height:20px;flex-shrink:0;
+  background:var(--green-bg);border-radius:50%;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:center;
+}
+.price-card .btn{width:100%;font-size:1.05rem;padding:16px}
+
+/* ━━ Footer ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.footer{
+  background:var(--navy);padding:48px 0;
+  text-align:center;color:var(--gray-400);font-size:.85rem;
+}
+.footer-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;color:var(--white);margin-bottom:6px}
+.footer-logo span{color:var(--green)}
+.footer a{color:var(--gray-400);transition:color .2s}
+.footer a:hover{color:var(--green)}
+.footer-disclaimer{margin-top:20px;font-size:.75rem;color:var(--gray-500);max-width:480px;margin-left:auto;margin-right:auto;line-height:1.5}
+
+/* ━━ Responsive ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@media(max-width:900px){
+  .hero-grid{grid-template-columns:1fr;text-align:center}
+  .hero-sub{margin-left:auto;margin-right:auto}
+  .hero-trust{justify-content:center}
+  .gauge-wrap{margin-top:40px}
+  .steps{grid-template-columns:1fr;max-width:400px;margin:0 auto}
+  .step:not(:last-child)::after{display:none}
+  .check-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .hero{padding:120px 0 70px}
+  .check-grid{grid-template-columns:1fr}
+  .price-card{padding:36px 28px}
+  .nav .btn{padding:8px 16px;font-size:.8rem}
+  .gauge-flags{right:-8px}
+  .gauge{width:220px;height:220px}
+  .gauge-score .number{font-size:3rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ━━ Nav ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="#" class="logo">PageScore<span>HQ</span></a>
+    <a href="#audit" class="btn btn-primary">Get My Free Score</a>
+  </div>
+</nav>
+
+<!-- ━━ Hero ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="hero" id="top">
+  <div class="container hero-grid">
+    <div>
+      <h1>Your website is <em>losing customers.</em> Find&nbsp;out&nbsp;why.</h1>
+      <p class="hero-sub">We scan your site for the exact issues hurting your Google ranking and send you a full report with exactly how to fix them.</p>
+      <a href="#audit" class="btn btn-primary btn-pulse" style="font-size:1.05rem;padding:16px 36px">
+        Get My Site Audited — $49
+      </a>
+      <p class="hero-trust">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        One-time fee. No subscription. Delivered in 24 hours.
+      </p>
+    </div>
+    <div class="gauge-wrap">
+      <div class="gauge">
+        <!-- Circular gauge SVG -->
+        <svg viewBox="0 0 200 200">
+          <!-- Track -->
+          <circle cx="100" cy="100" r="82" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="16" stroke-linecap="round"/>
+          <!-- Score arc (43% of 270°) — starts from bottom-left -->
+          <circle cx="100" cy="100" r="82" fill="none" stroke="url(#score-grad)" stroke-width="16" stroke-linecap="round"
+            stroke-dasharray="515.22" stroke-dashoffset="293"
+            transform="rotate(135 100 100)"
+            style="filter:drop-shadow(0 0 8px rgba(239,68,68,.4))"/>
+          <defs>
+            <linearGradient id="score-grad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ef4444"/>
+              <stop offset="100%" stop-color="#f97316"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="gauge-score">
+          <div class="number">43</div>
+          <div class="out-of">/100</div>
+          <div class="label">Needs work</div>
+        </div>
+        <!-- Flag callouts -->
+        <div class="gauge-flags">
+          <div class="gauge-flag">No HTTPS</div>
+          <div class="gauge-flag">Missing meta</div>
+          <div class="gauge-flag warn">Slow mobile</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━ How it works ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="how" id="how">
+  <div class="container">
+    <p class="section-label">How it works</p>
+    <h2 class="section-title">Three steps to a faster, higher-ranking website</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>We scan your site</h3>
+        <p>Our system checks your site across 6 key ranking factors automatically&mdash;no logins, no access needed.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>We find the leaks</h3>
+        <p>Every issue is identified, scored by severity, and explained in plain English. No jargon.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>You fix and rank</h3>
+        <p>A prioritized fix list so you know exactly what to do first to start climbing Google results.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━ What we check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="checks" id="checks">
+  <div class="container">
+    <p class="section-label">What we check</p>
+    <h2 class="section-title">Six factors that make or break your Google ranking</h2>
+    <div class="check-grid">
+      <div class="check-card">
+        <div class="check-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>Page Speed Score</h3>
+        <p>How fast your site loads on mobile. Slow sites lose over half their visitors before the page finishes loading.</p>
+      </div>
+      <div class="check-card">
+        <div class="check-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+        </div>
+        <h3>Meta Descriptions</h3>
+        <p>The text Google shows in search results. Missing or duplicated descriptions mean Google is guessing for you.</p>
+      </div>
+      <div class="check-card">
+        <div class="check-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h12"/><path d="M6 4h12"/></svg>
+        </div>
+        <h3>Header Tags</h3>
+        <p>H1 and heading structure tell search engines what your page is about. Missing headers hurt your relevance.</p>
+      </div>
+      <div class="check-card">
+        <div class="check-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <h3>Image Optimization</h3>
+        <p>Images without alt text are invisible to Google. We check every image and flag the ones holding you back.</p>
+      </div>
+      <div class="check-card">
+        <div class="check-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        </div>
+        <h3>Mobile Friendliness</h3>
+        <p>Over 60% of searches happen on phones. If your site isn't mobile-optimized, you're invisible to most customers.</p>
+      </div>
+      <div class="check-card">
+        <div class="check-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h3>HTTPS Security</h3>
+        <p>Sites without HTTPS show a "Not Secure" warning. Google penalizes insecure sites and visitors don't trust them.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ━━ Pricing ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<section class="pricing" id="audit">
+  <div class="container pricing-center">
+    <p class="section-label">Simple pricing</p>
+    <h2 class="section-title" style="margin-left:auto;margin-right:auto">One report. Everything you need to rank higher.</h2>
+    <div class="price-card">
+      <div class="price-amount"><span>$</span>49</div>
+      <p class="price-term">One-time payment &mdash; not a subscription</p>
+      <ul class="price-features">
+        <li>Full SEO audit report (PDF)</li>
+        <li>Plain English explanations</li>
+        <li>Severity scoring for every issue</li>
+        <li>Priority fix checklist</li>
+        <li>Step-by-step repair instructions</li>
+        <li>Delivered within 24 hours</li>
+      </ul>
+      <a href="https://buy.stripe.com/7sY28q4Z63UF4KzfynaVa01" class="btn btn-primary btn-pulse" style="font-size:1.05rem">
+        Get My Audit Now
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ━━ Footer ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-logo">PageScore<span>HQ</span></div>
+    <a href="https://pagescore-hq.com">pagescore-hq.com</a>
+    <p class="footer-disclaimer">Not legal or technical advice. Audit reports are informational only.</p>
+  </div>
+</footer>
+
+<!-- ━━ Minimal JS: scroll shadow on nav ━━━━━━━━━━━━━━━━━━━━━━━ -->
+<script>
+(function(){
+  const nav=document.querySelector('.nav');
+  let ticking=false;
+  window.addEventListener('scroll',function(){
+    if(!ticking){
+      requestAnimationFrame(function(){
+        nav.style.boxShadow=window.scrollY>10?'0 2px 20px rgba(0,0,0,.25)':'none';
+        ticking=false;
+      });
+      ticking=true;
+    }
+  });
+})();
+</script>
+</body>
+</html>
