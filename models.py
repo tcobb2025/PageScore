@@ -23,6 +23,7 @@ def init_db():
             category TEXT,
             email TEXT,
             email_status TEXT DEFAULT 'pending',
+            email_confidence TEXT DEFAULT NULL,
             seo_score INTEGER,
             seo_findings TEXT,
             flagged INTEGER DEFAULT 0,
@@ -44,6 +45,16 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_leads_email_sent ON leads(email_sent);
         CREATE INDEX IF NOT EXISTS idx_leads_city_category ON leads(city, category);
     """)
+    # Migration: add email_confidence column to existing databases
+    try:
+        conn.execute("ALTER TABLE leads ADD COLUMN email_confidence TEXT DEFAULT NULL")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    # Migration: add subject_variant column for A/B subject-line testing
+    try:
+        conn.execute("ALTER TABLE leads ADD COLUMN subject_variant TEXT DEFAULT NULL")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     conn.close()
 
 

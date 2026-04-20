@@ -2,6 +2,7 @@
 
 import json
 import os
+import random
 from urllib.parse import urlencode, urlparse
 
 from models import get_db, update_lead, get_flagged_leads_needing_email_copy
@@ -11,6 +12,20 @@ from logger import get_logger
 log = get_logger("email_writer")
 
 REPORT_BASE = os.getenv("REPORT_PAGE_BASE_URL", "https://pagescore-hq.com/report")
+
+# Subject-line A/B variants. Instantly can A/B-test subject lines natively;
+# we generate one email per lead with a pre-picked variant and log which
+# variant was chosen so we can track conversion by variant.
+SUBJECT_VARIANTS = {
+    "A": "Quick question about {domain}",
+    "B": "Found something on {domain}",
+}
+_subject_rng = random.SystemRandom()
+
+
+def pick_subject_variant() -> str:
+    """Return 'A' or 'B' with a 50/50 split (crypto-grade RNG)."""
+    return _subject_rng.choice(["A", "B"])
 
 # Map raw category strings (as scraped) to plain-English labels.
 CATEGORY_LABELS = {
@@ -106,13 +121,15 @@ def build_report_url(business_name: str, score: int, issues_count: int, email: s
 
 
 def render_cold_email(*, business_name: str, domain: str, score: int, city: str,
-                      category_raw: str, report_url: str) -> str:
-    """Render the final deterministic cold-email template."""
+                      category_raw: str, report_url: str,
+                      subject_variant: str = "A") -> str:
+    """Render the final deterministic cold-email template for the given variant."""
     cat = plain_category(category_raw)
     low, high = _value_range(cat)
     city_clean = (city or "your area").strip()
 
-    subject = f"Subject: Quick question about {domain}"
+    subject_template = SUBJECT_VARIANTS.get(subject_variant, SUBJECT_VARIANTS["A"])
+    subject = f"Subject: {subject_template.format(domain=domain)}"
     greeting = f"Hi {business_name},"
     body = (
         f"Ran a quick audit on {domain} and your site scored {score}/100. "
@@ -140,22 +157,30 @@ def render_cold_email(*, business_name: str, domain: str, score: int, city: str,
     ])
 
 
-def generate_cold_email(lead: dict) -> str:
-    """Produce the cold email for a flagged lead."""
+def generate_cold_email(lead: dict, subject_variant: str | None = None) -> tuple[str, str]:
+    """Produce the cold email for a flagged lead.
+
+    Returns (email_text, variant_letter). If no variant is passed, one is
+    picked at random so callers that just want the text still get a valid
+    A/B assignment.
+    """
     findings = json.loads(lead["seo_findings"]) if lead["seo_findings"] else {}
     domain = _domain_from_website(lead.get("website", ""))
     issues_count = _count_issues(findings)
     report_url = build_report_url(
         lead["business_name"], lead["seo_score"] or 0, issues_count, lead.get("email", "")
     )
-    return render_cold_email(
+    variant = subject_variant if subject_variant in SUBJECT_VARIANTS else pick_subject_variant()
+    email_text = render_cold_email(
         business_name=lead["business_name"],
         domain=domain,
         score=lead["seo_score"] or 0,
         city=lead.get("city", ""),
         category_raw=lead.get("category", ""),
         report_url=report_url,
+        subject_variant=variant,
     )
+    return email_text, variant
 
 
 def run_email_generation() -> dict:
@@ -164,15 +189,16 @@ def run_email_generation() -> dict:
     leads = get_flagged_leads_needing_email_copy(conn)
     log.info(f"Email generation: {len(leads)} leads to process")
 
-    stats = {"processed": 0, "generated": 0, "errors": 0}
+    stats = {"processed": 0, "generated": 0, "errors": 0, "variant_A": 0, "variant_B": 0}
 
     for lead in leads:
         stats["processed"] += 1
         try:
-            email_text = generate_cold_email(dict(lead))
-            update_lead(conn, lead["id"], cold_email=email_text)
+            email_text, variant = generate_cold_email(dict(lead))
+            update_lead(conn, lead["id"], cold_email=email_text, subject_variant=variant)
             stats["generated"] += 1
-            log.info(f"  Generated email for: {lead['business_name']}")
+            stats[f"variant_{variant}"] += 1
+            log.info(f"  Generated email for: {lead['business_name']} (variant {variant})")
         except Exception as e:
             stats["errors"] += 1
             log.error(f"  Error generating email for {lead['business_name']}: {e}")
