@@ -141,7 +141,7 @@ def render_cold_email(*, business_name: str, domain: str, score: int, city: str,
     cta = f"See exactly what's costing you customers:\n{report_url}"
     signoff = "Alex, PageScore HQ"
     unsub = 'To opt out reply with "unsubscribe"'
-    privacy = "Privacy policy: pagescore-hq.com/privacy.html"
+    privacy = "Privacy policy: pagescore-hq.com/#privacy"
 
     return "\n".join([
         subject,
