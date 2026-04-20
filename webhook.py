@@ -9,6 +9,7 @@ from flask import Flask, request, jsonify, send_from_directory, abort, render_te
 from models import get_db, update_lead, get_lead_by_email
 from config import Config
 from report_generator import generate_report, get_report_download_url
+from email_writer import plain_category
 from logger import get_logger
 
 log = get_logger("webhook")
@@ -227,18 +228,22 @@ def report_page():
     email = request.args.get("email", "").strip().lower()
 
     issues_list: list[dict] = []
+    category_raw = request.args.get("category", "").strip()
     if email:
         try:
             conn = get_db()
             lead = get_lead_by_email(conn, email)
             conn.close()
-            if lead and lead["seo_findings"]:
-                findings = json.loads(lead["seo_findings"])
-                issues_list = _findings_to_issues(findings)[:3]
+            if lead:
+                if lead["seo_findings"]:
+                    findings = json.loads(lead["seo_findings"])
+                    issues_list = _findings_to_issues(findings)[:3]
                 if lead["seo_score"] is not None:
                     score = lead["seo_score"]
                 if not company or company == "Your Business":
                     company = lead["business_name"] or company
+                if not category_raw and lead["category"]:
+                    category_raw = lead["category"]
         except Exception as e:
             log.warning(f"/report lookup failed for {email}: {e}")
 
@@ -246,6 +251,7 @@ def report_page():
         issues_list = _fallback_issues()
 
     score_color, score_label = _score_color(score)
+    category_label = plain_category(category_raw) if category_raw else "local"
 
     return render_template(
         "report.html",
@@ -256,6 +262,7 @@ def report_page():
         issues_count=issues_count if issues_count > 0 else len(issues_list),
         issues_list=issues_list,
         stripe_link=Config.STRIPE_PAYMENT_LINK or "#",
+        category_label=category_label,
     )
 
 

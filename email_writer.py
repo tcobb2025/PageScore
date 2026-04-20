@@ -1,9 +1,8 @@
-"""Step 4 — Claude Email Writer: generate personalized cold emails."""
+"""Step 4 — Cold email writer: deterministic template, no LLM required."""
 
 import json
 import os
 from urllib.parse import urlencode, urlparse
-import anthropic
 
 from models import get_db, update_lead, get_flagged_leads_needing_email_copy
 from config import Config
@@ -13,50 +12,71 @@ log = get_logger("email_writer")
 
 REPORT_BASE = os.getenv("REPORT_PAGE_BASE_URL", "https://pagescore-hq.com/report")
 
+# Map raw category strings (as scraped) to plain-English labels.
+CATEGORY_LABELS = {
+    "hvac": "HVAC",
+    "roofer": "roofing",
+    "roofing": "roofing",
+    "roofing contractor": "roofing",
+    "plumber": "plumbing",
+    "plumbing": "plumbing",
+    "electrician": "electrical",
+    "electrical": "electrical",
+    "dentist": "dental",
+    "dental": "dental",
+    "chiropractor": "chiropractic",
+    "chiropractic": "chiropractic",
+}
 
-def _find_worst_finding(findings: dict) -> str:
-    """Identify the worst SEO issue to use as a teaser."""
-    issues = []
+# Conservative "typically worth $low-$high in additional jobs per month" ranges.
+CATEGORY_VALUE = {
+    "roofing": (2000, 4000),
+    "HVAC": (800, 1500),
+    "plumbing": (600, 1000),
+    "electrical": (600, 900),
+    "dental": (1500, 3000),
+    "chiropractic": (400, 800),
+}
+DEFAULT_VALUE = (500, 1000)
 
-    if not findings.get("is_https", True):
-        issues.append(("the biggest issue is that visitors see a 'Not Secure' "
-                       "warning in Chrome before they even see your services", 30))
 
-    status = findings.get("status_code")
-    if status and status != 200:
-        issues.append((f"your homepage returns a {status} error, so some "
-                       "visitors can't load your site at all", 28))
+def plain_category(raw: str | None) -> str:
+    """Return the plain-English category label for emails and the landing page."""
+    if not raw:
+        return "Local"
+    key = raw.strip().lower()
+    if key in CATEGORY_LABELS:
+        return CATEGORY_LABELS[key]
+    # Default: capitalize first letter of the raw category.
+    return raw.strip()[:1].upper() + raw.strip()[1:]
 
-    ps = findings.get("pagespeed_mobile")
-    if ps is not None and ps < 50:
-        issues.append((f"your mobile speed score is {ps}/100, which is slow "
-                       "enough that visitors leave before the page loads", 22))
 
-    meta = findings.get("meta_description")
-    if meta in ("missing", "empty"):
-        issues.append(("your meta description is missing, so Google is "
-                       "guessing what to show beneath your search listing", 15))
+def _value_range(category_label: str) -> tuple[int, int]:
+    return CATEGORY_VALUE.get(category_label, DEFAULT_VALUE)
 
-    h1 = findings.get("h1_tag")
-    if h1 == "missing":
-        issues.append(("your homepage has no H1 heading, which weakens how "
-                       "Google reads your main topic", 14))
 
-    missing_alt = findings.get("images_missing_alt", 0)
-    checked = findings.get("images_checked", 0)
-    if checked and missing_alt:
-        issues.append((f"{missing_alt} of {checked} images are missing alt "
-                       "text, costing you Google Image Search traffic", 8))
+def _format_money(n: int) -> str:
+    return f"{n:,}"
 
-    if not issues:
-        return "we found several areas where your website could rank better"
 
-    issues.sort(key=lambda x: x[1], reverse=True)
-    return issues[0][0]
+def _domain_from_website(website: str) -> str:
+    """Strip protocol/www from a website URL — 'https://www.dalcoac.com/' -> 'dalcoac.com'."""
+    if not website:
+        return ""
+    try:
+        parsed = urlparse(website if "://" in website else f"http://{website}")
+        host = parsed.netloc or parsed.path
+        return host.replace("www.", "").strip("/").lower()
+    except Exception:
+        return (website.replace("https://", "")
+                       .replace("http://", "")
+                       .replace("www.", "")
+                       .split("/")[0]
+                       .lower())
 
 
 def _count_issues(findings: dict) -> int:
-    """Rough count of findings for the issues param in the URL."""
+    """Rough issue count for the issues= URL param."""
     count = 0
     if not findings.get("is_https", True):
         count += 1
@@ -74,20 +94,8 @@ def _count_issues(findings: dict) -> int:
     return max(count, 1)
 
 
-def _domain_from_website(website: str) -> str:
-    """Extract a clean domain like 'dalcoac.com' from a website URL."""
-    if not website:
-        return ""
-    try:
-        parsed = urlparse(website if "://" in website else f"http://{website}")
-        host = parsed.netloc or parsed.path
-        return host.replace("www.", "").strip("/").lower()
-    except Exception:
-        return website.replace("https://", "").replace("http://", "").replace("www.", "").split("/")[0]
-
-
 def build_report_url(business_name: str, score: int, issues_count: int, email: str) -> str:
-    """Build the personalized report landing page URL with encoded params."""
+    """Build the personalized report landing page URL with properly encoded params."""
     params = urlencode({
         "company": business_name or "",
         "score": score if score is not None else 0,
@@ -97,56 +105,57 @@ def build_report_url(business_name: str, score: int, issues_count: int, email: s
     return f"{REPORT_BASE}?{params}"
 
 
+def render_cold_email(*, business_name: str, domain: str, score: int, city: str,
+                      category_raw: str, report_url: str) -> str:
+    """Render the final deterministic cold-email template."""
+    cat = plain_category(category_raw)
+    low, high = _value_range(cat)
+    city_clean = (city or "your area").strip()
+
+    subject = f"Subject: Quick question about {domain}"
+    greeting = f"Hi {business_name},"
+    body = (
+        f"Ran a quick audit on {domain} and your site scored {score}/100. "
+        f"Sites in this range rarely show up when someone in {city_clean} "
+        f'googles "{cat} near me" — and that\'s where most new customers come from. '
+        f"For {cat} companies, showing up in those results is typically worth "
+        f"${_format_money(low)}-${_format_money(high)} in additional jobs per month."
+    )
+    cta = f"See exactly what's costing you customers:\n{report_url}"
+    signoff = "Alex, PageScore HQ"
+    unsub = 'To opt out reply with "unsubscribe"'
+
+    return "\n".join([
+        subject,
+        "",
+        greeting,
+        "",
+        body,
+        "",
+        cta,
+        "",
+        signoff,
+        "",
+        unsub,
+    ])
+
+
 def generate_cold_email(lead: dict) -> str:
-    """Use Claude to write a personalized cold email for a flagged lead."""
+    """Produce the cold email for a flagged lead."""
     findings = json.loads(lead["seo_findings"]) if lead["seo_findings"] else {}
-    worst_issue = _find_worst_finding(findings)
     domain = _domain_from_website(lead.get("website", ""))
     issues_count = _count_issues(findings)
     report_url = build_report_url(
         lead["business_name"], lead["seo_score"] or 0, issues_count, lead.get("email", "")
     )
-
-    client = anthropic.Anthropic(api_key=Config.ANTHROPIC_API_KEY)
-
-    prompt = f"""Write a short cold email to a local business owner about their website SEO.
-
-Business name: {lead['business_name']}
-Domain: {domain}
-SEO score: {lead['seo_score']}/100
-Single worst finding (use this specifically): {worst_issue}
-Report URL: {report_url}
-
-Strict format — output ONLY these parts in this exact order, nothing else:
-
-Subject: Quick question about {domain}
-
-Hi {lead['business_name']},
-
-<body: 3 to 5 sentences, warm, direct, human. Mention that you ran a quick audit on {domain} and their site scored {lead['seo_score']}/100. Then work in the worst finding naturally. Then say you found a few other things hurting their ranking too. Do not include the report URL in the body.>
-
-See your full score here:
-{report_url}
-
-Alex, PageScore HQ
-
-To opt out reply with "unsubscribe"
-
-Rules:
-- No buzzwords (leverage, unlock, synergy, solutions, cutting-edge)
-- No exclamation points
-- No "I hope this finds you well" or similar filler
-- No sign-off other than "Alex, PageScore HQ"
-- Do not add any text before "Subject:" or after the unsubscribe line
-- Keep the body to 5 sentences maximum"""
-
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=500,
-        messages=[{"role": "user", "content": prompt}],
+    return render_cold_email(
+        business_name=lead["business_name"],
+        domain=domain,
+        score=lead["seo_score"] or 0,
+        city=lead.get("city", ""),
+        category_raw=lead.get("category", ""),
+        report_url=report_url,
     )
-
-    return message.content[0].text.strip()
 
 
 def run_email_generation() -> dict:
@@ -164,7 +173,6 @@ def run_email_generation() -> dict:
             update_lead(conn, lead["id"], cold_email=email_text)
             stats["generated"] += 1
             log.info(f"  Generated email for: {lead['business_name']}")
-
         except Exception as e:
             stats["errors"] += 1
             log.error(f"  Error generating email for {lead['business_name']}: {e}")
