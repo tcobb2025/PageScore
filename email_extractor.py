@@ -15,8 +15,34 @@ EMAIL_RE = re.compile(
     r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
 )
 
-SKIP_PREFIXES = {"info@", "noreply@", "no-reply@", "support@", "admin@",
-                 "webmaster@", "sales@", "hello@", "contact@"}
+# Junk keywords — any email whose local-part contains these is rejected outright
+JUNK_KEYWORDS = {
+    "filler", "test", "placeholder", "example",
+    "noreply", "no-reply", "donotreply", "do-not-reply",
+    "webmaster", "admin",
+}
+
+# Template/builder/junk domains — always reject
+JUNK_DOMAINS = {
+    "godaddy.com", "wix.com", "wixsite.com",
+    "squarespace.com", "squarespace.mail",
+    "weebly.com", "insitesoft.com", "wordpress.com",
+    "example.com", "example.org",
+}
+
+# Admin-like prefixes — reject outright (now also covered by JUNK_KEYWORDS)
+ADMIN_PREFIXES = {"admin@", "webmaster@"}
+
+# Generic prefixes — store but mark as low confidence when on a legitimate domain
+LOW_CONFIDENCE_PREFIXES = {"info@", "contact@", "hello@", "support@", "sales@"}
+
+# Generic username words — the local-part being just this word is rejected
+GENERIC_USERNAMES = {
+    "info", "contact", "hello", "support", "admin", "webmaster",
+    "sales", "help", "team", "mail", "email", "office", "hq",
+    "noreply", "no-reply", "donotreply", "do-not-reply",
+    "test", "example", "placeholder", "filler",
+}
 
 CONTACT_PATHS = ["/", "/contact", "/contact-us", "/about", "/about-us"]
 
@@ -59,28 +85,75 @@ def _extract_emails_from_html(html: str) -> set[str]:
     return found
 
 
+def _is_junk(email: str) -> bool:
+    """Return True if the email is a template/placeholder that should never be stored.
+
+    Rejects:
+      - Template/builder/junk domains (godaddy.com, wix.com, wordpress.com, etc.)
+      - Any local-part containing filler, test, placeholder, example, noreply,
+        no-reply, donotreply, webmaster, or admin
+      - Any local-part that is itself a generic username word (e.g. 'team@x.com',
+        'office@x.com') EXCEPT the info/contact/hello/support set, which we
+        keep as low-confidence.
+    """
+    lower = email.lower()
+    if "@" not in lower:
+        return True
+    local, domain = lower.split("@", 1)
+
+    # Template builder / junk domains
+    if domain in JUNK_DOMAINS:
+        return True
+
+    # Hard-reject keywords appearing anywhere in the local-part
+    for kw in JUNK_KEYWORDS:
+        if kw in local:
+            return True
+
+    # Local-part is a bare generic username (e.g. 'team', 'office', 'mail').
+    # Exception: the low-confidence set (info, contact, hello, support) is kept.
+    if local in GENERIC_USERNAMES and local not in {"info", "contact", "hello", "support"}:
+        return True
+
+    return False
+
+
+def _is_admin(email: str) -> bool:
+    """Return True if this is an admin/webmaster address.
+
+    These are already rejected by _is_junk — kept for backward compatibility.
+    """
+    lower = email.lower()
+    return any(lower.startswith(p) for p in ADMIN_PREFIXES)
+
+
+def _is_low_confidence(email: str) -> bool:
+    """Return True if this is a generic prefix (info@, contact@, hello@, support@)."""
+    lower = email.lower()
+    return any(lower.startswith(p) for p in LOW_CONFIDENCE_PREFIXES)
+
+
 def _score_email(email: str) -> int:
     """Higher score = more likely to be a real person's email."""
     email_lower = email.lower()
 
-    # Skip generic addresses
-    for prefix in SKIP_PREFIXES:
-        if email_lower.startswith(prefix):
-            return 0
+    # Low-confidence generics get a low but non-zero score
+    if _is_low_confidence(email_lower):
+        return 1
 
     # Prefer emails with name-like patterns
     local = email_lower.split("@")[0]
     if "." in local or "_" in local:
-        return 3  # Likely firstname.lastname
+        return 4  # Likely firstname.lastname
     if any(c.isdigit() for c in local):
-        return 1
-    return 2
+        return 2
+    return 3
 
 
-def _pick_best_email(emails: set[str]) -> str | None:
-    """Pick the most owner-like email from the set."""
+def _pick_best_email(emails: set[str]) -> tuple[str | None, str | None]:
+    """Pick the best email. Returns (email, confidence) where confidence is 'high' or 'low'."""
     if not emails:
-        return None
+        return None, None
 
     # Filter out image/file extensions that regex might catch
     filtered = {
@@ -89,18 +162,30 @@ def _pick_best_email(emails: set[str]) -> str | None:
     }
 
     if not filtered:
-        return None
+        return None, None
 
-    scored = [(e, _score_email(e)) for e in filtered]
+    # Remove junk emails
+    clean = {e for e in filtered if not _is_junk(e)}
+    if not clean:
+        return None, None
+
+    # Separate admin-only emails — reject unless they're the only option
+    non_admin = {e for e in clean if not _is_admin(e)}
+    pool = non_admin if non_admin else clean
+
+    scored = [(e, _score_email(e)) for e in pool]
     scored.sort(key=lambda x: x[1], reverse=True)
 
-    # Only return if at least score > 0
     best_email, best_score = scored[0]
-    return best_email if best_score > 0 else None
+    if best_score <= 0:
+        return None, None
+
+    confidence = "low" if _is_low_confidence(best_email) else "high"
+    return best_email, confidence
 
 
-def extract_email_for_lead(lead: dict) -> str | None:
-    """Visit a lead's website and attempt to extract an email address."""
+def extract_email_for_lead(lead: dict) -> tuple[str | None, str | None]:
+    """Visit a lead's website and extract an email. Returns (email, confidence)."""
     base_url = lead["website"]
     all_emails: set[str] = set()
 
@@ -128,16 +213,21 @@ def run_email_extraction() -> dict:
     leads = get_leads_needing_email(conn)
     log.info(f"Email extraction: {len(leads)} leads to process")
 
-    stats = {"processed": 0, "found": 0, "skipped": 0}
+    stats = {"processed": 0, "found": 0, "found_low": 0, "skipped": 0}
 
     for lead in leads:
         stats["processed"] += 1
         try:
-            email = extract_email_for_lead(dict(lead))
+            email, confidence = extract_email_for_lead(dict(lead))
             if email:
-                update_lead(conn, lead["id"], email=email, email_status="found")
-                stats["found"] += 1
-                log.info(f"  Found: {lead['business_name']} -> {email}")
+                update_lead(conn, lead["id"], email=email,
+                            email_status="found", email_confidence=confidence)
+                if confidence == "low":
+                    stats["found_low"] += 1
+                    log.info(f"  Found (low confidence): {lead['business_name']} -> {email}")
+                else:
+                    stats["found"] += 1
+                    log.info(f"  Found: {lead['business_name']} -> {email}")
             else:
                 update_lead(conn, lead["id"], email_status="skip")
                 stats["skipped"] += 1

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ company }} — Your Free SEO Report | PageScore HQ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f5f7fa;
+    color: #1a202c;
+    line-height: 1.5;
+  }
+  header {
+    background: #0f172a;
+    color: #fff;
+    padding: 20px 24px;
+  }
+  .header-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .logo-accent { color: #60a5fa; }
+  .header-tag { font-size: 14px; color: #94a3b8; }
+  main { max-width: 720px; margin: 0 auto; padding: 24px 20px 48px; }
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .score-card { text-align: center; }
+  .company-name {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #64748b;
+    margin-bottom: 8px;
+  }
+  .company-name strong { color: #0f172a; letter-spacing: 0; text-transform: none; font-size: 22px; display: block; margin-top: 4px; }
+  .gauge {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    margin: 20px 0 8px;
+    border: 10px solid {{ score_color }};
+    background: #fff;
+  }
+  .gauge-score {
+    font-size: 56px;
+    font-weight: 700;
+    color: {{ score_color }};
+    line-height: 1;
+  }
+  .gauge-outof { font-size: 14px; color: #64748b; margin-top: 6px; }
+  .score-label {
+    display: inline-block;
+    background: {{ score_color }};
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 8px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+    color: #0f172a;
+  }
+  .issue {
+    border-left: 4px solid #e2e8f0;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    background: #f8fafc;
+    border-radius: 0 6px 6px 0;
+  }
+  .issue.high { border-color: #dc2626; }
+  .issue.medium { border-color: #f59e0b; }
+  .issue.low { border-color: #3b82f6; }
+  .severity {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+  }
+  .severity.high { background: #fee2e2; color: #991b1b; }
+  .severity.medium { background: #fef3c7; color: #92400e; }
+  .severity.low { background: #dbeafe; color: #1e40af; }
+  .issue-text { font-size: 15px; color: #334155; }
+  .includes-list {
+    list-style: none;
+    padding: 0;
+  }
+  .includes-list li {
+    padding: 10px 0 10px 28px;
+    position: relative;
+    font-size: 15px;
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .includes-list li:last-child { border-bottom: none; }
+  .includes-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    color: #10b981;
+    font-weight: 700;
+  }
+  .cta-card {
+    background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+    color: #fff;
+    text-align: center;
+  }
+  .cta-card h2 { color: #fff; }
+  .price {
+    font-size: 48px;
+    font-weight: 700;
+    margin: 8px 0;
+  }
+  .price-sub { color: #94a3b8; margin-bottom: 20px; font-size: 15px; }
+  .cta-button {
+    display: inline-block;
+    background: #60a5fa;
+    color: #0f172a;
+    padding: 16px 40px;
+    border-radius: 8px;
+    font-size: 17px;
+    font-weight: 700;
+    text-decoration: none;
+    margin-bottom: 16px;
+    transition: background 0.15s;
+  }
+  .cta-button:hover { background: #93c5fd; }
+  .trust { color: #cbd5e1; font-size: 13px; margin-bottom: 8px; }
+  .disclaimer { color: #94a3b8; font-size: 12px; margin-top: 12px; }
+  .heading-lead {
+    font-size: 17px;
+    color: #475569;
+    margin-bottom: 16px;
+  }
+  footer {
+    text-align: center;
+    padding: 24px 20px;
+    color: #64748b;
+    font-size: 13px;
+  }
+  footer a { color: #64748b; text-decoration: underline; }
+  @media (max-width: 480px) {
+    .gauge { width: 150px; height: 150px; }
+    .gauge-score { font-size: 44px; }
+    .price { font-size: 40px; }
+    .card { padding: 22px 18px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="logo">PageScore<span class="logo-accent">HQ</span></div>
+    <div class="header-tag">Your Free SEO Report</div>
+  </div>
+</header>
+
+<main>
+  <div class="card score-card">
+    <div class="company-name">
+      Report for
+      <strong>{{ company }}</strong>
+    </div>
+    <div class="gauge">
+      <div class="gauge-score">{{ score }}</div>
+      <div class="gauge-outof">out of 100</div>
+    </div>
+    <div>
+      <span class="score-label">{{ score_label }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>We found {{ issues_count }} issues affecting your Google ranking</h2>
+    <p class="heading-lead">Here are the top problems hurting your visibility right now:</p>
+    {% for issue in issues_list %}
+    <div class="issue {{ issue.severity|lower }}">
+      <div class="severity {{ issue.severity|lower }}">{{ issue.severity }}</div>
+      <div class="issue-text">{{ issue.text }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h2>What the full report includes</h2>
+    <ul class="includes-list">
+      <li>Every issue explained in plain English</li>
+      <li>Step-by-step fix instructions for each problem</li>
+      <li>Priority order — what to fix first for fastest results</li>
+      <li>Estimated impact of each fix on your Google ranking</li>
+    </ul>
+  </div>
+
+  <div class="card cta-card">
+    <h2>Get your full report</h2>
+    <div class="price">$49</div>
+    <div class="price-sub">One-time payment</div>
+    <a href="{{ stripe_link }}" class="cta-button">Get My Full Report</a>
+    <div class="trust">Instant download. No subscription. 30-second checkout.</div>
+    <div class="disclaimer">Report covers your public website data only.</div>
+  </div>
+</main>
+
+<footer>
+  PageScore HQ | <a href="https://pagescore-hq.com">pagescore-hq.com</a> &nbsp;·&nbsp;
+  <a href="mailto:unsubscribe@pagescore-hq.com?subject=unsubscribe">Unsubscribe</a>
+</footer>
+</body>
+</html>
