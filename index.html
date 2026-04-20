@@ -128,8 +128,9 @@ h1,h2,h3,h4{font-family:'Syne',sans-serif;line-height:1.2;color:var(--navy)}
   text-transform:uppercase;letter-spacing:.05em;
 }
 .gauge-flags{
-  position:absolute;right:-16px;top:50%;transform:translateY(-50%);
+  position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);
   display:flex;flex-direction:column;gap:8px;
+  pointer-events:none;
 }
 .gauge-flag{
   background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);
@@ -244,9 +245,14 @@ h1,h2,h3,h4{font-family:'Syne',sans-serif;line-height:1.2;color:var(--navy)}
   .check-grid{grid-template-columns:1fr}
   .price-card{padding:36px 28px}
   .nav .btn{padding:8px 16px;font-size:.8rem}
-  .gauge-flags{right:-8px}
   .gauge{width:220px;height:220px}
   .gauge-score .number{font-size:3rem}
+  .gauge-wrap{flex-direction:column}
+  .gauge-flags{
+    position:static;transform:none;left:auto;top:auto;
+    flex-direction:row;flex-wrap:wrap;justify-content:center;
+    margin-top:18px;gap:6px;
+  }
 }
 </style>
 </head>
