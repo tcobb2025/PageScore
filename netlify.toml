@@ -1,0 +1,5 @@
+[build]
+# The marketing site is a static set of HTML files at the repo root.
+# No build step is needed.
+publish = "."
+command = ""
