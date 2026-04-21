@@ -234,9 +234,10 @@ def stripe_webhook():
 
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
-        customer_email = session.get("customer_email") or session.get(
-            "customer_details", {}
-        ).get("email")
+        customer_email = (
+            getattr(session, "customer_email", None)
+            or getattr(getattr(session, "customer_details", None), "email", None)
+        )
 
         if not customer_email:
             log.error("No customer email in Stripe session")
@@ -259,8 +260,8 @@ def stripe_webhook():
         update_lead(
             conn, lead_id,
             paid=1,
-            paid_at=session.get("created", ""),
-            stripe_session_id=session.get("id", ""),
+            paid_at=getattr(session, "created", ""),
+            stripe_session_id=getattr(session, "id", ""),
         )
         conn.close()
 
