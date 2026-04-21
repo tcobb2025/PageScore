@@ -345,23 +345,45 @@ def seed_test_lead():
         "images_missing_alt": 2,
     })
 
-    conn = get_db()
-    # Check if already exists
-    existing = get_lead_by_email(conn, "tyler@cobb.org")
-    if existing:
-        conn.close()
-        return jsonify({"status": "already_exists", "id": existing["id"]}), 200
+    try:
+        conn = get_db()
 
-    lead_id = insert_lead(conn, {
-        "business_name": "Test Roofer",
-        "website": "https://testroofing.com",
-        "phone": "",
-        "maps_url": "",
-        "city": "Dallas TX",
-        "category": "roofer",
-    })
+        # Check if already exists by email
+        existing = get_lead_by_email(conn, "tyler@cobb.org")
+        if existing:
+            conn.close()
+            return jsonify({"status": "already_exists", "id": existing["id"]}), 200
 
-    if lead_id:
+        # Try insert; if website conflicts, find by website and update email
+        lead_id = insert_lead(conn, {
+            "business_name": "Test Roofer",
+            "website": "https://testroofing.com",
+            "phone": "",
+            "maps_url": "",
+            "city": "Dallas TX",
+            "category": "roofer",
+        })
+
+        if not lead_id:
+            # Website already exists — find it and update
+            row = conn.execute(
+                "SELECT id FROM leads WHERE website = ?",
+                ("https://testroofing.com",)
+            ).fetchone()
+            if row:
+                lead_id = row[0]
+            else:
+                # Force insert with unique website
+                cur = conn.execute(
+                    """INSERT INTO leads
+                       (business_name, website, phone, maps_url, city, category)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    ("Test Roofer", f"https://testroofing-{uuid.uuid4().hex[:6]}.com",
+                     "", "", "Dallas TX", "roofer")
+                )
+                conn.commit()
+                lead_id = cur.lastrowid
+
         update_lead(conn, lead_id,
                     email="tyler@cobb.org",
                     email_status="found",
@@ -369,8 +391,11 @@ def seed_test_lead():
                     seo_findings=test_findings,
                     flagged=1)
 
-    conn.close()
-    return jsonify({"status": "created", "id": lead_id, "email": "tyler@cobb.org"}), 200
+        conn.close()
+        return jsonify({"status": "created", "id": lead_id, "email": "tyler@cobb.org"}), 200
+
+    except Exception as e:
+        return jsonify({"status": "error", "detail": str(e)}), 500
 
 
 @app.route("/health")
