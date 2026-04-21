@@ -8,6 +8,7 @@ class Config:
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
     PAGESPEED_API_KEY = os.getenv("PAGESPEED_API_KEY", "")
     INSTANTLY_API_KEY = os.getenv("INSTANTLY_API_KEY", "")
+    INSTANTLY_CAMPAIGN_ID = os.getenv("INSTANTLY_CAMPAIGN_ID", "")
     STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
     STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
     STRIPE_PAYMENT_LINK = os.getenv("STRIPE_PAYMENT_LINK", "")

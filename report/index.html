@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your SEO Score — PageScore HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',system-ui,sans-serif;color:#1e293b;line-height:1.6;background:#fff;min-height:100vh;display:flex;flex-direction:column}
+h1,h2,h3{font-family:'Syne',sans-serif;line-height:1.2;color:#0f172a}
+a{text-decoration:none;color:inherit}
+
+:root{
+  --navy:#0f172a;
+  --green:#22c55e;
+  --green-dark:#16a34a;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --yellow:#eab308;
+  --gray-50:#f8fafc;
+  --gray-100:#f1f5f9;
+  --gray-200:#e2e8f0;
+  --gray-400:#94a3b8;
+  --gray-500:#64748b;
+  --gray-600:#475569;
+  --radius:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 14px rgba(0,0,0,.06);
+}
+
+/* Header */
+.header{background:var(--navy);padding:18px 0}
+.header-inner{max-width:720px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.25rem;color:#fff;letter-spacing:-0.5px}
+.logo span{color:var(--green)}
+
+/* Main */
+.main{flex:1;display:flex;align-items:center;justify-content:center;padding:48px 24px}
+.card{max-width:560px;width:100%;background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08),0 1px 4px rgba(0,0,0,.04);padding:48px 40px;text-align:center}
+
+/* Company */
+.company{font-size:.85rem;font-weight:500;color:var(--gray-500);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+/* Gauge */
+.gauge-wrap{position:relative;width:180px;height:180px;margin:24px auto 16px}
+.gauge-bg{fill:none;stroke:var(--gray-200);stroke-width:12}
+.gauge-fill{fill:none;stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset .8s ease,stroke .3s}
+.gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge-score{font-family:'Syne',sans-serif;font-size:3rem;font-weight:800;line-height:1}
+.gauge-label{font-size:.8rem;color:var(--gray-500);margin-top:2px}
+
+/* Issues */
+.issues{font-size:1.1rem;font-weight:600;color:var(--navy);margin:20px 0 24px}
+
+/* Callout */
+.callout{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:20px 24px;font-size:.95rem;color:var(--gray-600);line-height:1.7;margin-bottom:32px;text-align:left}
+
+/* Includes */
+.includes{text-align:left;margin-bottom:32px}
+.includes h3{font-size:1rem;margin-bottom:12px;color:var(--navy)}
+.includes ul{list-style:none;padding:0}
+.includes li{padding:8px 0;font-size:.95rem;color:var(--gray-600);border-bottom:1px solid var(--gray-100);display:flex;align-items:center;gap:10px}
+.includes li::before{content:"";display:inline-block;width:20px;height:20px;background:var(--green);border-radius:50%;flex-shrink:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");background-size:12px;background-repeat:no-repeat;background-position:center}
+
+/* CTA */
+.cta-btn{display:inline-block;background:var(--green);color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:1.1rem;padding:16px 48px;border-radius:8px;transition:background .2s,transform .15s;box-shadow:0 4px 14px rgba(34,197,94,.3)}
+.cta-btn:hover{background:var(--green-dark);transform:translateY(-1px)}
+.trust{font-size:.8rem;color:var(--gray-400);margin-top:12px}
+
+/* Footer */
+.footer{background:var(--gray-50);border-top:1px solid var(--gray-200);padding:20px 24px;text-align:center;font-size:.8rem;color:var(--gray-400)}
+.footer a{color:var(--gray-500);text-decoration:underline}
+.footer a:hover{color:var(--navy)}
+
+@media(max-width:600px){
+  .card{padding:32px 24px}
+  .gauge-wrap{width:150px;height:150px}
+  .gauge-score{font-size:2.4rem}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">Page<span>Score</span> HQ</div>
+  </div>
+</header>
+
+<main class="main">
+  <div class="card">
+    <div class="company" id="company">Your Business</div>
+    <h1 style="font-size:1.5rem;margin-bottom:4px">Your SEO Score</h1>
+
+    <div class="gauge-wrap">
+      <svg viewBox="0 0 120 120" width="100%" height="100%">
+        <circle class="gauge-bg" cx="60" cy="60" r="52"/>
+        <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52"
+          stroke-dasharray="326.73" stroke-dashoffset="326.73"
+          transform="rotate(-90 60 60)"/>
+      </svg>
+      <div class="gauge-text">
+        <div class="gauge-score" id="score-num">—</div>
+        <div class="gauge-label">out of 100</div>
+      </div>
+    </div>
+
+    <div class="issues" id="issues">Analyzing your site...</div>
+
+    <div class="callout" id="callout"></div>
+
+    <div class="includes">
+      <h3>What the full report includes:</h3>
+      <ul>
+        <li>Complete technical SEO audit with priority fixes</li>
+        <li>Google ranking factors specific to your industry</li>
+        <li>Competitor comparison for your local area</li>
+        <li>Step-by-step action plan to improve your score</li>
+      </ul>
+    </div>
+
+    <a class="cta-btn" id="cta-btn" href="#">Get Your Full Report — $49</a>
+    <div class="trust">Instant download. No subscription.</div>
+  </div>
+</main>
+
+<footer class="footer">
+  <a href="/privacy.html">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms.html">Terms</a>
+</footer>
+
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const company = params.get('company') || 'Your Business';
+  const score = parseInt(params.get('score') || '0', 10);
+  const issues = parseInt(params.get('issues') || '0', 10);
+  const email = params.get('email') || '';
+  const category = params.get('category') || 'local service';
+
+  // Company name
+  document.getElementById('company').textContent = company;
+  document.title = `${company} — SEO Score | PageScore HQ`;
+
+  // Score gauge
+  const circumference = 326.73;
+  const offset = circumference - (score / 100) * circumference;
+  const fill = document.getElementById('gauge-fill');
+
+  let color;
+  if (score <= 40) color = '#ef4444';
+  else if (score <= 60) color = '#f59e0b';
+  else if (score <= 80) color = '#eab308';
+  else color = '#22c55e';
+
+  setTimeout(() => {
+    fill.style.strokeDashoffset = offset;
+    fill.style.stroke = color;
+  }, 100);
+
+  document.getElementById('score-num').textContent = score;
+  document.getElementById('score-num').style.color = color;
+
+  // Issues
+  document.getElementById('issues').textContent =
+    `We found ${issues} issue${issues !== 1 ? 's' : ''} affecting your Google visibility`;
+
+  // Callout
+  document.getElementById('callout').textContent =
+    `Most new ${category} customers start with a Google search. Sites scoring below 60 rarely appear in those results.`;
+
+  // CTA — Stripe payment link with prefilled email
+  const stripeBase = 'https://buy.stripe.com/7sY28q4Z63UF4KzfynaVa01';
+  const ctaUrl = email ? `${stripeBase}?prefilled_email=${encodeURIComponent(email)}` : stripeBase;
+  document.getElementById('cta-btn').href = ctaUrl;
+})();
+</script>
+</body>
+</html>

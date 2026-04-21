@@ -11,7 +11,7 @@ from logger import get_logger
 
 log = get_logger("email_writer")
 
-REPORT_BASE = os.getenv("REPORT_PAGE_BASE_URL", "https://pagescore-hq.com/report")
+REPORT_BASE = os.getenv("REPORT_PAGE_BASE_URL", "https://pagescore-hq.com/report/")
 
 # Subject-line A/B variants. Instantly can A/B-test subject lines natively;
 # we generate one email per lead with a pre-picked variant and log which
@@ -126,7 +126,10 @@ def render_cold_email(*, business_name: str, domain: str, score: int, city: str,
     """Render the final deterministic cold-email template for the given variant."""
     cat = plain_category(category_raw)
     low, high = _value_range(cat)
-    city_clean = (city or "your area").strip()
+    # Strip state abbreviation: "Dallas TX" -> "Dallas", "Fort Worth TX" -> "Fort Worth"
+    city_raw = (city or "your area").strip()
+    parts = city_raw.rsplit(" ", 1)
+    city_clean = parts[0] if len(parts) > 1 and len(parts[-1]) == 2 and parts[-1].isupper() else city_raw
 
     subject_template = SUBJECT_VARIANTS.get(subject_variant, SUBJECT_VARIANTS["A"])
     subject = f"Subject: {subject_template.format(domain=domain)}"
@@ -139,9 +142,7 @@ def render_cold_email(*, business_name: str, domain: str, score: int, city: str,
         f"${_format_money(low)}-${_format_money(high)} in additional jobs per month."
     )
     cta = f"See exactly what's costing you customers:\n{report_url}"
-    signoff = "Alex, PageScore HQ"
-    unsub = 'To opt out reply with "unsubscribe"'
-    privacy = "Privacy policy: pagescore-hq.com/privacy.html"
+    signoff = "Alex Rivera\nVice President"
 
     return "\n".join([
         subject,
@@ -153,9 +154,6 @@ def render_cold_email(*, business_name: str, domain: str, score: int, city: str,
         cta,
         "",
         signoff,
-        "",
-        unsub,
-        privacy,
     ])
 
 

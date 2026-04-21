@@ -55,6 +55,24 @@ def init_db():
         conn.execute("ALTER TABLE leads ADD COLUMN subject_variant TEXT DEFAULT NULL")
     except sqlite3.OperationalError:
         pass  # Column already exists
+    # Migration: add first_name column
+    try:
+        conn.execute("ALTER TABLE leads ADD COLUMN first_name TEXT DEFAULT NULL")
+    except sqlite3.OperationalError:
+        pass
+    # Migration: add Instantly campaign tracking columns
+    try:
+        conn.execute("ALTER TABLE leads ADD COLUMN instantly_lead_id TEXT DEFAULT NULL")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE leads ADD COLUMN added_to_campaign INTEGER DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE leads ADD COLUMN campaign_added_at TEXT DEFAULT NULL")
+    except sqlite3.OperationalError:
+        pass
     conn.close()
 
 
