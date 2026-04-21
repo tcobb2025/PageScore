@@ -8,6 +8,7 @@ from urllib.parse import urlencode, urlparse
 from models import get_db, update_lead, get_leads_ready_to_send, count_emails_sent_today
 from config import Config
 from logger import get_logger
+from email_extractor import is_valid_business_email
 
 log = get_logger("email_sender")
 
@@ -174,11 +175,18 @@ def run_email_sending() -> dict:
     log.info(f"Email sending: {len(leads)} to send ({sent_today} sent today, "
              f"{remaining} remaining)")
 
-    stats = {"processed": 0, "sent": 0, "failed": 0}
+    stats = {"processed": 0, "sent": 0, "failed": 0, "skipped_junk": 0}
 
     for lead in leads:
         stats["processed"] += 1
         lead = dict(lead)
+
+        # Gate: don't push placeholder/tracking/generic addresses to Instantly
+        if not is_valid_business_email(lead.get("email", "")):
+            log.info(f"  Rejected junk email, skipping: {lead.get('email')}")
+            update_lead(conn, lead["id"], email_status="skip")
+            stats["skipped_junk"] += 1
+            continue
 
         # Extract first name
         first_name = extract_first_name(lead.get("email", ""), lead.get("business_name", ""))

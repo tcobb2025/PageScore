@@ -15,34 +15,81 @@ EMAIL_RE = re.compile(
     r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
 )
 
-# Junk keywords — any email whose local-part contains these is rejected outright
+# Strict format gate: local@domain.tld with a real TLD (≥2 alpha chars)
+VALID_EMAIL_RE = re.compile(
+    r"^[A-Za-z0-9][A-Za-z0-9._%+\-]*"
+    r"@[A-Za-z0-9][A-Za-z0-9\-]*(?:\.[A-Za-z0-9\-]+)*"
+    r"\.[A-Za-z]{2,}$"
+)
+
+# Specific addresses we never want to contact (e.g. our own test address)
+BLOCKED_EMAILS = {"tyler@cobb.org"}
+
+# Junk keywords — any local-part containing these is rejected outright
 JUNK_KEYWORDS = {
     "filler", "test", "placeholder", "example",
     "noreply", "no-reply", "donotreply", "do-not-reply",
-    "webmaster", "admin",
+    "webmaster",
 }
 
-# Template/builder/junk domains — always reject
+# Template/builder/placeholder/tracking domains — always reject
 JUNK_DOMAINS = {
+    "domain.com", "mysite.com", "example.com", "example.org",
     "godaddy.com", "wix.com", "wixsite.com",
+    "wixpress.com", "sentry.wixpress.com",
     "squarespace.com", "squarespace.mail",
     "weebly.com", "insitesoft.com", "wordpress.com",
-    "example.com", "example.org",
 }
 
-# Admin-like prefixes — reject outright (now also covered by JUNK_KEYWORDS)
+# Generic usernames — reject whenever the local-part is exactly one of these
+GENERIC_USERNAMES = {
+    "user", "you", "filler", "example", "test", "placeholder",
+    "info", "hello", "contact", "support",
+    "admin", "webmaster", "staff", "team", "office", "sales",
+    "noreply", "no-reply", "donotreply", "do-not-reply",
+    "mail", "email", "billing", "help", "service", "hq",
+}
+
+# The low-confidence pathway is disabled — info/contact/hello/support are now
+# hard-rejected by GENERIC_USERNAMES. Kept as an empty set for backward-compat.
+LOW_CONFIDENCE_PREFIXES: set[str] = set()
+
+# Covered by GENERIC_USERNAMES; retained for backward-compat imports
 ADMIN_PREFIXES = {"admin@", "webmaster@"}
 
-# Generic prefixes — store but mark as low confidence when on a legitimate domain
-LOW_CONFIDENCE_PREFIXES = {"info@", "contact@", "hello@", "support@", "sales@"}
 
-# Generic username words — the local-part being just this word is rejected
-GENERIC_USERNAMES = {
-    "info", "contact", "hello", "support", "admin", "webmaster",
-    "sales", "help", "team", "mail", "email", "office", "hq",
-    "noreply", "no-reply", "donotreply", "do-not-reply",
-    "test", "example", "placeholder", "filler",
-}
+def _looks_like_tracking_hash(local: str) -> bool:
+    """True if the local-part looks like a random tracking hash.
+
+    Heuristic: longer than 15 chars, no name separators, mixes letters and digits
+    (catches e.g. Sentry's Wix ingest hashes).
+    """
+    if len(local) <= 15:
+        return False
+    if any(c in local for c in "._-+"):
+        return False
+    return any(c.isalpha() for c in local) and any(c.isdigit() for c in local)
+
+
+def is_valid_business_email(email: str) -> bool:
+    """Return True only if `email` is a plausible real business address."""
+    if not email:
+        return False
+    e = email.strip().lower()
+    if e in BLOCKED_EMAILS:
+        return False
+    if not VALID_EMAIL_RE.match(e):
+        return False
+    local, domain = e.rsplit("@", 1)
+    if domain in JUNK_DOMAINS or domain.startswith("sentry."):
+        return False
+    if local in GENERIC_USERNAMES:
+        return False
+    if any(kw in local for kw in JUNK_KEYWORDS):
+        return False
+    if _looks_like_tracking_hash(local):
+        return False
+    return True
 
 CONTACT_PATHS = ["/", "/contact", "/contact-us", "/about", "/about-us"]
 
@@ -86,36 +133,8 @@ def _extract_emails_from_html(html: str) -> set[str]:
 
 
 def _is_junk(email: str) -> bool:
-    """Return True if the email is a template/placeholder that should never be stored.
-
-    Rejects:
-      - Template/builder/junk domains (godaddy.com, wix.com, wordpress.com, etc.)
-      - Any local-part containing filler, test, placeholder, example, noreply,
-        no-reply, donotreply, webmaster, or admin
-      - Any local-part that is itself a generic username word (e.g. 'team@x.com',
-        'office@x.com') EXCEPT the info/contact/hello/support set, which we
-        keep as low-confidence.
-    """
-    lower = email.lower()
-    if "@" not in lower:
-        return True
-    local, domain = lower.split("@", 1)
-
-    # Template builder / junk domains
-    if domain in JUNK_DOMAINS:
-        return True
-
-    # Hard-reject keywords appearing anywhere in the local-part
-    for kw in JUNK_KEYWORDS:
-        if kw in local:
-            return True
-
-    # Local-part is a bare generic username (e.g. 'team', 'office', 'mail').
-    # Exception: the low-confidence set (info, contact, hello, support) is kept.
-    if local in GENERIC_USERNAMES and local not in {"info", "contact", "hello", "support"}:
-        return True
-
-    return False
+    """Return True if the email fails the business-email validator."""
+    return not is_valid_business_email(email)
 
 
 def _is_admin(email: str) -> bool:
