@@ -2,11 +2,14 @@
 
 import os
 import json
+import uuid
+from datetime import datetime
+
 import stripe
 import resend
 from flask import Flask, request, jsonify, send_from_directory, abort, render_template
 
-from models import get_db, update_lead, get_lead_by_email
+from models import get_db, update_lead, get_lead_by_email, insert_lead
 from config import Config
 from report_generator import generate_report, get_report_download_url
 from email_writer import plain_category
@@ -122,7 +125,7 @@ def _deliver_report(lead_id: int, customer_email: str) -> bool:
 
     try:
         resend.Emails.send({
-            "from": Config.RESEND_FROM_EMAIL,
+            "from": f"PageScore HQ <{Config.RESEND_FROM_EMAIL}>",
             "to": [customer_email],
             "subject": "Your SEO Audit Report is Ready",
             "html": f"""<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -151,6 +154,64 @@ def _deliver_report(lead_id: int, customer_email: str) -> bool:
 
     except Exception as e:
         log.error(f"Failed to send report email to {customer_email}: {e}")
+        return False
+
+
+def _deliver_generic_report(customer_email: str) -> bool:
+    """Send a generic SEO report email when lead isn't in database."""
+    log.info(f"Delivering generic report to unknown lead: {customer_email}")
+
+    try:
+        resend.Emails.send({
+            "from": f"PageScore HQ <{Config.RESEND_FROM_EMAIL}>",
+            "to": [customer_email],
+            "subject": "Your SEO Audit Report is Ready",
+            "html": """<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+                <h2 style="color: #1e40af;">Your SEO Audit Report</h2>
+                <p>Thank you for your purchase! Here are the most common issues we find on local business websites:</p>
+
+                <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                    <strong style="color: #dc2626;">HIGH PRIORITY</strong>
+                    <p style="margin: 4px 0 0; color: #374151;">Missing or incomplete meta descriptions — Google can't properly display your listing in search results without them.</p>
+                </div>
+
+                <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                    <strong style="color: #dc2626;">HIGH PRIORITY</strong>
+                    <p style="margin: 4px 0 0; color: #374151;">Slow mobile page speed — over 60% of local searches happen on phones. Pages taking more than 3 seconds to load lose half their visitors.</p>
+                </div>
+
+                <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                    <strong style="color: #d97706;">MEDIUM PRIORITY</strong>
+                    <p style="margin: 4px 0 0; color: #374151;">Missing H1 heading tag — this is the primary signal Google uses to understand what your page is about.</p>
+                </div>
+
+                <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                    <strong style="color: #d97706;">MEDIUM PRIORITY</strong>
+                    <p style="margin: 4px 0 0; color: #374151;">Images missing alt text — you're leaving Google Image Search traffic on the table and hurting accessibility.</p>
+                </div>
+
+                <h3 style="color: #1e40af; margin-top: 24px;">Recommended Action Plan</h3>
+                <ol style="color: #374151; line-height: 1.8;">
+                    <li>Add unique meta descriptions to every page (under 160 characters)</li>
+                    <li>Compress images and enable browser caching to improve load speed</li>
+                    <li>Ensure every page has exactly one H1 tag with your target keyword</li>
+                    <li>Add descriptive alt text to all images</li>
+                    <li>Verify your Google Business Profile is complete and matches your website</li>
+                </ol>
+
+                <p style="color: #6b7280; font-size: 14px; margin-top: 24px;">
+                    Want a personalized deep-dive? Reply to this email and we'll run a full audit on your specific site.
+                </p>
+
+                <p style="color: #9ca3af; font-size: 12px; margin-top: 32px;">PageScore HQ</p>
+            </div>""",
+        })
+
+        log.info(f"Generic report delivered to {customer_email}")
+        return True
+
+    except Exception as e:
+        log.error(f"Failed to send generic report to {customer_email}: {e}")
         return False
 
 
@@ -185,8 +246,9 @@ def stripe_webhook():
         conn.close()
 
         if not lead:
-            log.error(f"No lead found for email {customer_email}")
-            return jsonify({"error": "lead not found"}), 404
+            log.warning(f"Unknown lead purchase from {customer_email} — delivering generic report")
+            _deliver_generic_report(customer_email)
+            return jsonify({"status": "ok", "report": "generic"}), 200
 
         lead_id = lead["id"]
 
@@ -264,6 +326,51 @@ def report_page():
         stripe_link=Config.STRIPE_PAYMENT_LINK or "#",
         category_label=category_label,
     )
+
+
+@app.route("/seed-test-lead")
+def seed_test_lead():
+    """Insert a test lead into the database. Requires secret key."""
+    key = request.args.get("key", "")
+    if key != "pagescore_test_2024":
+        abort(403)
+
+    test_findings = json.dumps({
+        "is_https": False,
+        "status_code": 200,
+        "pagespeed_mobile": 32,
+        "meta_description": "missing",
+        "h1_tag": "ok",
+        "images_checked": 5,
+        "images_missing_alt": 2,
+    })
+
+    conn = get_db()
+    # Check if already exists
+    existing = get_lead_by_email(conn, "tyler@cobb.org")
+    if existing:
+        conn.close()
+        return jsonify({"status": "already_exists", "id": existing["id"]}), 200
+
+    lead_id = insert_lead(conn, {
+        "business_name": "Test Roofer",
+        "website": "https://testroofing.com",
+        "phone": "",
+        "maps_url": "",
+        "city": "Dallas TX",
+        "category": "roofer",
+    })
+
+    if lead_id:
+        update_lead(conn, lead_id,
+                    email="tyler@cobb.org",
+                    email_status="found",
+                    seo_score=38,
+                    seo_findings=test_findings,
+                    flagged=1)
+
+    conn.close()
+    return jsonify({"status": "created", "id": lead_id, "email": "tyler@cobb.org"}), 200
 
 
 @app.route("/health")
