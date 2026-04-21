@@ -9,7 +9,7 @@ import stripe
 import resend
 from flask import Flask, request, jsonify, send_from_directory, abort, render_template
 
-from models import get_db, update_lead, get_lead_by_email, insert_lead
+from models import get_db, update_lead, get_lead_by_email, insert_lead, init_db
 from config import Config
 from report_generator import generate_report, get_report_download_url
 from email_writer import plain_category
@@ -18,6 +18,9 @@ from logger import get_logger
 log = get_logger("webhook")
 
 app = Flask(__name__, template_folder=Config.TEMPLATES_DIR)
+
+# Ensure database tables exist on startup
+init_db()
 
 
 def _score_color(score: int) -> tuple[str, str]:
